@@ -5,46 +5,45 @@ import Sidebar from "./Sidebar";
 import "./Profile.css";
 
 function Profile() {
+
   const navigate = useNavigate();
 
-  const user = JSON.parse(localStorage.getItem("user"));
+ const [user, setUser] = useState(() => {
+  return JSON.parse(localStorage.getItem("user")) || {};
+});
 
   const [expenses, setExpenses] = useState([]);
 
-  // Monthly Allowance from localStorage
-  const [monthlyRevenue, setMonthlyRevenue] = useState(
-    Number(localStorage.getItem("allowance")) || 0
-  );
+  const [editing, setEditing] = useState(false);
+
+  const [name, setName] = useState(user?.name || "");
+const [email, setEmail] = useState(user?.email || "");
+
+  const monthlyRevenue =
+  Number(
+    localStorage.getItem(`allowance_${user?.id}`)
+  ) || 0;
 
   useEffect(() => {
+  if (user?.id) {
     fetchExpenses();
-  }, []);
-
-  // Update allowance whenever Profile page becomes active
-  useEffect(() => {
-    const updateAllowance = () => {
-      setMonthlyRevenue(
-        Number(localStorage.getItem("allowance")) || 0
-      );
-    };
-
-    updateAllowance();
-
-    window.addEventListener("focus", updateAllowance);
-
-    return () => {
-      window.removeEventListener("focus", updateAllowance);
-    };
-  }, []);
+  }
+}, [user]);
 
   const fetchExpenses = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/expenses");
-      setExpenses(res.data);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+  try {
+    if (!user?.id) return;
+
+    const res = await axios.get(
+      `http://localhost:5000/expenses/${user.id}`
+    );
+
+    setExpenses(res.data);
+
+  } catch (err) {
+    console.log(err);
+  }
+};
 
   const totalSpent = expenses.reduce(
     (sum, item) => sum + Number(item.amount),
@@ -56,112 +55,262 @@ function Profile() {
   const totalTransactions = expenses.length;
 
   const handleLogout = () => {
+
     localStorage.clear();
+
     navigate("/");
+
+  };
+
+  const handleUpdate = async () => {
+
+    try {
+
+      const res = await axios.put(
+
+        `http://localhost:5000/update-profile/${user.id}`,
+
+        {
+          name,
+          email,
+        }
+
+      );
+
+      const updatedUser = {
+        ...user,
+        name: res.data.name,
+        email: res.data.email,
+      };
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(updatedUser)
+      );
+
+      setUser(updatedUser);
+
+      setEditing(false);
+
+      alert("Profile updated successfully");
+
+    } catch (err) {
+
+      console.log(err);
+
+      alert("Unable to update profile");
+
+    }
+
   };
 
   return (
-    <div className="dashboard-layout">
-      <Sidebar />
 
-      <div className="main-content">
+<div className="dashboard-layout">
 
-        <div className="topbar">
-          <h2>My Profile</h2>
-          <p>View your account information</p>
-        </div>
+<Sidebar />
 
-        <div className="profile-container">
+<div className="main-content">
 
-          <div className="profile-header">
-            <div className="avatar">
-              {user?.name?.charAt(0).toUpperCase()}
-            </div>
+<div className="topbar">
 
-            <h3>{user?.name}</h3>
+<h2>My Profile</h2>
 
-            <p>{user?.email}</p>
-          </div>
+<p>Manage your personal information</p>
 
-          <hr />
+</div>
 
-          <div className="profile-section">
+<div className="profile-container">
 
-            <h4>Personal Information</h4>
+<div className="profile-header">
 
-            <div className="profile-row">
-              <span>Name</span>
-              <strong>{user?.name}</strong>
-            </div>
+<div className="avatar">
 
-            <div className="profile-row">
-              <span>Email</span>
-              <strong>{user?.email}</strong>
-            </div>
+{user?.name?.charAt(0).toUpperCase()}
 
-          </div>
+</div>
 
-          <hr />
+{editing ? (
 
-          <div className="profile-section">
+<input
+className="profile-input"
+value={name}
+onChange={(e)=>setName(e.target.value)}
+/>
 
-            <h4>Account Summary</h4>
+) : (
 
-            <div className="summary-grid">
+<h3>{user.name}</h3>
 
-              <div className="summary-box">
-                <h6>Total Transactions</h6>
-                <h3>{totalTransactions}</h3>
-              </div>
+)}
 
-              <div className="summary-box">
-                <h6>Monthly Revenue</h6>
-                <h3>₹{monthlyRevenue}</h3>
-              </div>
+{editing ? (
 
-              <div className="summary-box">
-                <h6>Total Spent</h6>
-                <h3>₹{totalSpent}</h3>
-              </div>
+<input
+className="profile-input"
+value={email}
+onChange={(e)=>setEmail(e.target.value)}
+/>
 
-              <div className="summary-box">
-                <h6>Remaining</h6>
-                <h3>₹{remaining}</h3>
-              </div>
+) : (
 
-            </div>
+<p>{user.email}</p>
 
-          </div>
+)}
 
-          <hr />
+</div>
 
-          <div className="action-buttons">
+<hr />
 
-            <button className="btn btn-primary">
-              Edit Profile
-            </button>
+<div className="profile-section">
 
-            <button
-              className="btn btn-warning"
-              onClick={() => navigate("/forgot-password")}
-            >
-              Change Password
-            </button>
+<h4>Personal Information</h4>
 
-            <button
-              className="btn btn-danger"
-              onClick={handleLogout}
-            >
-              Logout
-            </button>
+<div className="profile-row">
 
-          </div>
+<span>Name</span>
 
-        </div>
+{editing ? (
 
-      </div>
-    </div>
-  );
+<input
+className="profile-input"
+value={name}
+onChange={(e)=>setName(e.target.value)}
+/>
+
+) : (
+
+<strong>{user.name}</strong>
+
+)}
+
+</div>
+
+<div className="profile-row">
+
+<span>Email</span>
+
+{editing ? (
+
+<input
+className="profile-input"
+value={email}
+onChange={(e)=>setEmail(e.target.value)}
+/>
+
+) : (
+
+<strong>{user.email}</strong>
+
+)}
+
+</div>
+
+</div>
+
+<hr />
+
+<div className="profile-section">
+
+<h4>Account Summary</h4>
+
+<div className="summary-grid">
+
+<div className="summary-box">
+
+<h6>Total Transactions</h6>
+
+<h3>{totalTransactions}</h3>
+
+</div>
+
+<div className="summary-box">
+
+<h6>Monthly Revenue</h6>
+
+<h3>₹{monthlyRevenue}</h3>
+
+</div>
+
+<div className="summary-box">
+
+<h6>Total Spent</h6>
+
+<h3>₹{totalSpent}</h3>
+
+</div>
+
+<div className="summary-box">
+
+<h6>Remaining</h6>
+
+<h3>₹{remaining}</h3>
+
+</div>
+
+</div>
+
+</div>
+
+<hr /><div className="action-buttons">
+
+  {!editing ? (
+
+    <button
+      className="btn btn-primary"
+      onClick={() => setEditing(true)}
+    >
+      Edit Profile
+    </button>
+
+  ) : (
+
+    <>
+      <button
+        className="btn btn-success"
+        onClick={handleUpdate}
+      >
+        Save
+      </button>
+
+      <button
+        className="btn btn-secondary"
+        onClick={() => {
+          setEditing(false);
+          setName(user.name);
+          setEmail(user.email);
+        }}
+      >
+        Cancel
+      </button>
+    </>
+
+  )}
+
+  <button
+    className="btn btn-warning"
+    onClick={() => navigate("/forgot-password")}
+  >
+    Change Password
+  </button>
+
+  <button
+    className="btn btn-danger"
+    onClick={handleLogout}
+  >
+    Logout
+  </button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+);
+
 }
 
 export default Profile;

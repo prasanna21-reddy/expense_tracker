@@ -6,27 +6,37 @@ import "./Dashboard.css";
 
 function Dashboard() {
   const [expenses, setExpenses] = useState([]);
-
+  const user = JSON.parse(localStorage.getItem("user"));
   // EDIT EXPENSE STATE (✅ THIS WAS MISSING)
   const [editingExpense, setEditingExpense] = useState(null);
 
   // Allowance
-  const [allowance, setAllowance] = useState(() => {
-    return localStorage.getItem("allowance") || "";
-  });
+
+const [allowance, setAllowance] = useState(() => {
+  return (
+    localStorage.getItem(`allowance_${user?.id}`) || "0"
+  );
+});
 
   const [tempAllowance, setTempAllowance] = useState("");
   const [editingAllowance, setEditingAllowance] = useState(false);
-
+  
   // FETCH
-  const fetchExpenses = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/expenses");
-      setExpenses(res.data);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+ const fetchExpenses = async () => {
+  try {
+
+    const res = await axios.get(
+      `http://localhost:5000/expenses/${user.id}`
+    );
+
+    setExpenses(res.data);
+
+  } catch (err) {
+
+    console.log(err);
+
+  }
+};
 
   useEffect(() => {
     fetchExpenses();
@@ -34,9 +44,13 @@ function Dashboard() {
 
   // DELETE
   const handleDelete = async (id) => {
+  try {
     await axios.delete(`http://localhost:5000/expenses/${id}`);
     fetchExpenses();
-  };
+  } catch (err) {
+    console.log(err);
+  }
+};
 
   // FORMAT DATE
   const formatDate = (dateString) => {
@@ -87,10 +101,14 @@ function Dashboard() {
 
   // SAVE ALLOWANCE
   const saveAllowance = () => {
-    localStorage.setItem("allowance", tempAllowance);
-    setAllowance(tempAllowance);
-    setEditingAllowance(false);
-  };
+  localStorage.setItem(
+    `allowance_${user.id}`,
+    tempAllowance
+  );
+
+  setAllowance(tempAllowance);
+  setEditingAllowance(false);
+};
 
   return (
     <div className="dashboard-layout">

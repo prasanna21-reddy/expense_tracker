@@ -7,6 +7,7 @@ function AddExpense({
   editingExpense,
   setEditingExpense,
 }) {
+  
   const emptyForm = {
     date: "",
     description: "",
@@ -14,6 +15,7 @@ function AddExpense({
     paymentMethod: "Cash",
     amount: "",
   };
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const [form, setForm] = useState(emptyForm);
 
@@ -58,10 +60,13 @@ function AddExpense({
 
         alert("Expense updated successfully");
       } else {
-        await axios.post(
-          "http://localhost:5000/expenses",
-          form
-        );
+       await axios.post(
+  "http://localhost:5000/expenses",
+  {
+    ...form,
+    userId: user.id,
+  }
+);
 
         alert("Expense added successfully");
       }
