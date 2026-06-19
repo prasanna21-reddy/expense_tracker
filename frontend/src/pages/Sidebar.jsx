@@ -6,9 +6,9 @@ function Sidebar() {
 
     const logout = () => {
 
-        localStorage.removeItem("token");
+        localStorage.clear();
 
-        navigate("/login");
+        navigate("/");
 
     };
 

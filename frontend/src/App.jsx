@@ -7,31 +7,44 @@ import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <BrowserRouter>
-
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route
-path="/reports"
-element={<Reports/>}
-/>
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
-<Route
-path="/profile"
-element={<Profile/>}
-/>
+        {/* Protected Routes */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
         <Route
-  path="/forgot-password"
-  element={<ForgotPassword />}
-/>
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
-
     </BrowserRouter>
   );
 }

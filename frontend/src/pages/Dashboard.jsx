@@ -61,10 +61,22 @@ const [allowance, setAllowance] = useState(() => {
   };
 
   // TOTAL SPENT
-  const totalSpent = expenses.reduce(
-    (sum, e) => sum + Number(e.amount),
-    0
+  const currentMonth = new Date().getMonth();
+const currentYear = new Date().getFullYear();
+
+const currentMonthExpenses = expenses.filter((e) => {
+  const date = new Date(e.date);
+
+  return (
+    date.getMonth() === currentMonth &&
+    date.getFullYear() === currentYear
   );
+});
+
+const totalSpent = currentMonthExpenses.reduce(
+  (sum, item) => sum + Number(item.amount),
+  0
+);
 
   const monthlyRevenue = Number(allowance || 0);
   const remaining = monthlyRevenue - totalSpent;

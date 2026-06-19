@@ -125,6 +125,8 @@
 
 .chart-container {
   height: 340px;
+  display: flex;
+  justify-content: center;
 }
 
 /* =========================

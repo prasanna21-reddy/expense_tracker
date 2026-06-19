@@ -28,46 +28,76 @@ function Reports() {
   const [expenses, setExpenses] = useState([]);
   const [view, setView] = useState("monthly");
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   const allowance =
     Number(localStorage.getItem(`allowance_${user?.id}`)) || 0;
 
   const months = [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December",
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
   ];
 
   useEffect(() => {
     fetchExpenses();
   }, []);
 
-  // RESET FILTER WHEN VIEW CHANGES
+  // RESET FILTERS WHEN VIEW CHANGES
   useEffect(() => {
-    setSelectedMonth("");
+    if (view === "yearly") {
+      setSelectedMonth(""); // Reset month when switching to yearly
+    }
   }, [view]);
 
   const fetchExpenses = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/expenses");
+      if (!user?.id) return;
+      const res = await axios.get(`http://localhost:5000/expenses/${user.id}`);
       setExpenses(res.data || []);
     } catch (err) {
       console.log(err);
     }
   };
 
+  // ---------------- AVAILABLE YEARS ----------------
+  const availableYears = Array.from(
+    new Set(
+      expenses
+        .filter((e) => e.date)
+        .map((e) => e.date.split("T")[0].split("-")[0])
+    )
+  ).sort((a, b) => b - a);
+
+  // Make sure current year is always in the list if selected
+  if (selectedYear !== "" && !availableYears.includes(selectedYear)) {
+    availableYears.unshift(selectedYear);
+    availableYears.sort((a, b) => b - a);
+  }
+
   // ---------------- SAFE FILTER ----------------
-  const filteredExpenses =
-  view === "monthly"
-    ? expenses.filter((e) => {
-        if (selectedMonth === "") return true;
+  const filteredExpenses = expenses.filter((e) => {
+    if (!e.date) return false;
+    
+    const dateParts = e.date.split("T")[0].split("-");
+    const expenseYear = dateParts[0];
+    const expenseMonthIndex = dateParts.length >= 2 ? parseInt(dateParts[1], 10) - 1 : new Date(e.date).getMonth();
 
-        const expenseMonthIndex = new Date(e.date).getMonth();
+    // 1. Filter by Year
+    if (selectedYear !== "" && expenseYear !== selectedYear) {
+      return false;
+    }
 
-        return expenseMonthIndex === Number(selectedMonth);
-      })
-    : expenses;
+    // 2. Filter by Month (Only if in monthly view)
+    if (view === "monthly" && selectedMonth !== "") {
+      if (expenseMonthIndex !== Number(selectedMonth)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   // ---------------- TOTALS ----------------
   const totalSpent = filteredExpenses.reduce(
@@ -84,7 +114,6 @@ function Reports() {
 
   filteredExpenses.forEach((e) => {
     if (!e.category) return;
-
     categoryTotals[e.category] =
       (categoryTotals[e.category] || 0) + Number(e.amount || 0);
   });
@@ -103,8 +132,8 @@ function Reports() {
       {
         data: Object.values(categoryTotals),
         backgroundColor: [
-          "#6366f1","#f59e0b","#10b981",
-          "#ef4444","#3b82f6","#8b5cf6",
+          "#6366f1", "#f59e0b", "#10b981",
+          "#ef4444", "#3b82f6", "#8b5cf6",
         ],
       },
     ],
@@ -112,13 +141,18 @@ function Reports() {
 
   // ---------------- MONTHLY BAR ----------------
   const monthlyTotals = {};
+  
+  // Initialize all months to 0
+  months.forEach(m => monthlyTotals[m] = 0);
 
-  expenses.forEach((e) => {
+  filteredExpenses.forEach((e) => {
     if (!e.date) return;
 
-    const month = months[new Date(e.date).getMonth()];
-    monthlyTotals[month] =
-      (monthlyTotals[month] || 0) + Number(e.amount || 0);
+    const dateParts = e.date.split("T")[0].split("-");
+    const monthIdx = dateParts.length >= 2 ? parseInt(dateParts[1], 10) - 1 : new Date(e.date).getMonth();
+    const month = months[monthIdx];
+    
+    monthlyTotals[month] += Number(e.amount || 0);
   });
 
   const barData = {
@@ -147,19 +181,28 @@ function Reports() {
 
           <div className="report-controls">
 
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              <option value="">All Years</option>
+              {availableYears.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+
             {view === "monthly" && (
               <select
                 value={selectedMonth}
-                onChange={(e) =>
-                  setSelectedMonth(e.target.value)
-                }
+                onChange={(e) => setSelectedMonth(e.target.value)}
               >
                 <option value="">All Months</option>
-
-                {months.map((m) => (
-                  <option key={m} value={months.indexOf(m)}>
-  {m}
-</option>
+                {months.map((m, index) => (
+                  <option key={m} value={index}>
+                    {m}
+                  </option>
                 ))}
               </select>
             )}
@@ -223,7 +266,7 @@ function Reports() {
                   <p>No Data</p>
                 )
               ) : (
-                barData.labels.length > 0 ? (
+                barData.labels.length > 0 && Math.max(...barData.datasets[0].data) > 0 ? (
                   <Bar data={barData} />
                 ) : (
                   <p>No Data</p>
@@ -273,7 +316,7 @@ function Reports() {
                   <tr key={expense._id}>
                     <td>
                       {expense.date
-                        ? new Date(expense.date).toLocaleDateString()
+                        ? expense.date.split("T")[0]
                         : "-"}
                     </td>
                     <td>{expense.description || "-"}</td>
