@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import loginPhoto from "../assets/Login_Photo.png";
 import "./Login.css";
 
 function Login() {
@@ -44,94 +45,84 @@ localStorage.setItem(
 
   return (
     <div className="login-page">
-
-      <div className="login-card">
-
-        <div className="text-center mb-4">
-
-          <div className="logo-circle">
-            💰
-          </div>
-
-          <h2 className="mt-3 fw-bold">
-            Expense Tracker
-          </h2>
-
-          <p className="text-muted">
-            Welcome back! Please login to continue.
-          </p>
-
+      <div className="login-container">
+        <div className="login-image-section">
+          <img src={loginPhoto} alt="Login Illustration" className="login-image" />
         </div>
-
-        <form onSubmit={handleSubmit}>
-
-          <div className="mb-3">
-            <label className="form-label">
-              Email
-            </label>
-
-            <input
-              type="email"
-              name="email"
-              className="form-control"
-              placeholder="Enter your email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
+        <div className="login-card">
+          <div className="text-center mb-4">
+            <div className="logo-circle">
+              💰
+            </div>
+            <h2 className="mt-3 fw-bold">
+              Expense Tracker
+            </h2>
+            <p className="text-muted">
+              Welcome back! Please login to continue.
+            </p>
           </div>
 
-          <div className="mb-3">
-            <label className="form-label">
-              Password
-            </label>
-
-            <input
-              type="password"
-              name="password"
-              className="form-control"
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="d-flex justify-content-between mb-3">
-
-            <div>
-              <input type="checkbox" /> Remember me
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label className="form-label">
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                className="form-control"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
             </div>
 
-          <Link
-  to="/forgot-password"
-  className="text-decoration-none"
->
-  Forgot Password?
-</Link>
+            <div className="mb-3">
+              <label className="form-label">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                className="form-control"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-          </div>
+            <div className="d-flex justify-content-between mb-3">
+              <div>
+                <input type="checkbox" /> Remember me
+              </div>
+              <Link
+                to="/forgot-password"
+                className="text-decoration-none"
+              >
+                Forgot Password?
+              </Link>
+            </div>
 
-          <button
-            className="btn btn-primary w-100"
-            type="submit"
-          >
-            Login
-          </button>
+            <button
+              className="btn btn-primary w-100"
+              type="submit"
+            >
+              Login
+            </button>
+          </form>
 
-        </form>
+          <hr />
 
-        <hr />
-
-        <p className="text-center mb-0">
-          Don't have an account?{" "}
-          <Link to="/register">
-            Register
-          </Link>
-        </p>
-
+          <p className="text-center mb-0">
+            Don't have an account?{" "}
+            <Link to="/register">
+              Register
+            </Link>
+          </p>
+        </div>
       </div>
-
     </div>
   );
 }

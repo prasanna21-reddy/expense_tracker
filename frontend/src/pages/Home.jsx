@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import homePhoto from "../assets/home_photo.png";
 import "./Home.css";
 
 function Home() {
@@ -81,7 +82,7 @@ function Home() {
             {/* Right Side */}
             <div className="col-lg-6 p-0 d-flex">
               <img
-                src="/expense_tracker_banner.png"
+                src={homePhoto}
                 alt="Personal Expense Tracker App"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: '400px' }}
               />

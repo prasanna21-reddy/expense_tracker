@@ -71,7 +71,8 @@ function Profile() {
     : "N/A";
 
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     navigate("/");
   };
 

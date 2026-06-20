@@ -235,10 +235,12 @@ function Reports() {
               <strong>₹{totalSpent}</strong>
             </div>
 
-            <div className="summary-item">
-              <span>Remaining</span>
-              <strong>₹{remaining}</strong>
-            </div>
+            {view !== "yearly" && (
+              <div className="summary-item">
+                <span>Remaining</span>
+                <strong>₹{remaining}</strong>
+              </div>
+            )}
 
             <div className="summary-item">
               <span>Transactions</span>
