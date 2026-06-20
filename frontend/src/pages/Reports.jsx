@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Sidebar from "./Sidebar";
 import "./Reports.css";
-
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -79,7 +80,7 @@ function Reports() {
   // ---------------- SAFE FILTER ----------------
   const filteredExpenses = expenses.filter((e) => {
     if (!e.date) return false;
-    
+
     const dateParts = e.date.split("T")[0].split("-");
     const expenseYear = dateParts[0];
     const expenseMonthIndex = dateParts.length >= 2 ? parseInt(dateParts[1], 10) - 1 : new Date(e.date).getMonth();
@@ -121,8 +122,8 @@ function Reports() {
   const topCategory =
     Object.keys(categoryTotals).length > 0
       ? Object.keys(categoryTotals).reduce((a, b) =>
-          categoryTotals[a] > categoryTotals[b] ? a : b
-        )
+        categoryTotals[a] > categoryTotals[b] ? a : b
+      )
       : "-";
 
   // ---------------- PIE DATA ----------------
@@ -141,7 +142,7 @@ function Reports() {
 
   // ---------------- MONTHLY BAR ----------------
   const monthlyTotals = {};
-  
+
   // Initialize all months to 0
   months.forEach(m => monthlyTotals[m] = 0);
 
@@ -151,7 +152,7 @@ function Reports() {
     const dateParts = e.date.split("T")[0].split("-");
     const monthIdx = dateParts.length >= 2 ? parseInt(dateParts[1], 10) - 1 : new Date(e.date).getMonth();
     const month = months[monthIdx];
-    
+
     monthlyTotals[month] += Number(e.amount || 0);
   });
 
@@ -166,6 +167,90 @@ function Reports() {
     ],
   };
 
+  // report download handler
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+
+    // ---- Title ----
+    doc.setFontSize(18);
+    doc.text("Expense Report", 14, 20);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    const periodLabel =
+      (selectedMonth !== "" ? months[selectedMonth] + " " : "") +
+      (selectedYear !== "" ? selectedYear : "All Years");
+    doc.text(`Period: ${periodLabel}`, 14, 27);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 32);
+
+    // ---- Summary section ----
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text("Summary", 14, 42);
+
+    autoTable(doc, {
+      startY: 46,
+      theme: "plain",
+      styles: { fontSize: 10 },
+      body: [
+        ["Total Spent", `Rs. ${totalSpent}`],
+        ...(view !== "yearly" ? [["Remaining", `Rs. ${remaining}`]] : []),
+        ["Transactions", `${totalTransactions}`],
+        ["Top Category", `${topCategory}`],
+      ],
+      columnStyles: { 0: { fontStyle: "bold", cellWidth: 50 } },
+    });
+
+    // ---- Category breakdown ----
+    let nextY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(12);
+    doc.text("Category Breakdown", 14, nextY);
+
+    autoTable(doc, {
+      startY: nextY + 4,
+      head: [["Category", "Amount"]],
+      body: Object.entries(categoryTotals).map(([cat, amt]) => [
+        cat,
+        `Rs. ${amt}`,
+      ]),
+      headStyles: { fillColor: [99, 102, 241] }, // matches your #6366f1 accent
+      styles: { fontSize: 10 },
+    });
+
+    // ---- Transactions table ----
+    nextY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(12);
+    doc.text("Transactions", 14, nextY);
+
+    autoTable(doc, {
+      startY: nextY + 4,
+      head: [["Date", "Description", "Category", "Payment", "Amount"]],
+      body: filteredExpenses.map((e) => [
+        e.date ? e.date.split("T")[0] : "-",
+        e.description || "-",
+        e.category || "-",
+        e.paymentMethod || "-",
+        `Rs. ${e.amount || 0}`,
+      ]),
+      headStyles: { fillColor: [99, 102, 241] },
+      styles: { fontSize: 9 },
+      didDrawPage: (data) => {
+        // page numbers in the footer
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(
+          `Page ${data.pageNumber} of ${pageCount}`,
+          doc.internal.pageSize.width - 30,
+          doc.internal.pageSize.height - 10
+        );
+      },
+    });
+
+    // ---- Save ----
+    const filename = `expense-report-${periodLabel.replace(/\s+/g, "-")}.pdf`;
+    doc.save(filename);
+  };
   return (
     <div className="dashboard-layout">
       <Sidebar />
@@ -212,6 +297,9 @@ function Reports() {
               onClick={() => setView("monthly")}
             >
               Monthly
+            </button>
+            <button onClick={handleDownloadPDF} className="download-btn">
+              Download PDF
             </button>
 
             <button
