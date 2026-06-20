@@ -9,7 +9,7 @@ function Dashboard() {
   const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
   const [editingExpense, setEditingExpense] = useState(null);
 
-  // Allowance — now sourced from the user object (DB-backed), not its own localStorage key
+  // Allowance — sourced from the user object (DB-backed), not its own localStorage key
   const [allowance, setAllowance] = useState(user?.allowance ?? 0);
 
   const [tempAllowance, setTempAllowance] = useState("");
@@ -71,14 +71,22 @@ function Dashboard() {
 
   // COLOR
   const progressColor =
-    spentPercent < 60 ? "#22c55e" : spentPercent < 80 ? "#f59e0b" : "#ef4444";
+    spentPercent < 60
+      ? "#22c55e"
+      : spentPercent < 80
+        ? "#f59e0b"
+        : "#ef4444";
 
   // WARNING
   const isWarning = spentPercent >= 80 && spentPercent < 100;
   const isExceeded = spentPercent >= 100;
 
-  // GROUP
-  const groupedExpenses = expenses.reduce((acc, e) => {
+  // GROUP (sorted newest to oldest)
+  const sortedExpenses = [...expenses].sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  );
+
+  const groupedExpenses = sortedExpenses.reduce((acc, e) => {
     const month = new Date(e.date).toLocaleString("default", {
       month: "long",
       year: "numeric",
@@ -88,7 +96,7 @@ function Dashboard() {
     return acc;
   }, {});
 
-  // SAVE ALLOWANCE — now persists to DB instead of localStorage
+  // SAVE ALLOWANCE — persists to DB instead of localStorage
   const saveAllowance = async () => {
     const value = Number(tempAllowance);
 
@@ -236,52 +244,54 @@ function Dashboard() {
         <div className="card shadow mt-4 p-4">
           <h4>Monthly Expenses</h4>
 
-          {Object.keys(groupedExpenses).map((month) => (
-            <div key={month}>
-              <h5>{month}</h5>
+          {Object.keys(groupedExpenses)
+            .sort((a, b) => new Date(b) - new Date(a))
+            .map((month) => (
+              <div key={month}>
+                <h5>{month}</h5>
 
-              <table className="table table-hover">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Description</th>
-                    <th>Category</th>
-                    <th>Payment</th>
-                    <th>Amount</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {groupedExpenses[month].map((e) => (
-                    <tr key={e._id}>
-                      <td>{formatDate(e.date)}</td>
-                      <td>{e.description}</td>
-                      <td>{e.category}</td>
-                      <td>{e.paymentMethod}</td>
-                      <td>₹{e.amount}</td>
-
-                      <td>
-                        <button
-                          className="btn btn-warning btn-sm me-2"
-                          onClick={() => setEditingExpense(e)}
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDelete(e._id)}
-                        >
-                          Delete
-                        </button>
-                      </td>
+                <table className="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Description</th>
+                      <th>Category</th>
+                      <th>Payment</th>
+                      <th>Amount</th>
+                      <th>Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
+                  </thead>
+
+                  <tbody>
+                    {groupedExpenses[month].map((e) => (
+                      <tr key={e._id}>
+                        <td>{formatDate(e.date)}</td>
+                        <td>{e.description}</td>
+                        <td>{e.category}</td>
+                        <td>{e.paymentMethod}</td>
+                        <td>₹{e.amount}</td>
+
+                        <td>
+                          <button
+                            className="btn btn-warning btn-sm me-2"
+                            onClick={() => setEditingExpense(e)}
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDelete(e._id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
         </div>
       </div>
     </div>
