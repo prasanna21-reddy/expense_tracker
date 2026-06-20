@@ -6,37 +6,25 @@ import "./Dashboard.css";
 
 function Dashboard() {
   const [expenses, setExpenses] = useState([]);
-  const user = JSON.parse(localStorage.getItem("user"));
-  // EDIT EXPENSE STATE (✅ THIS WAS MISSING)
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
   const [editingExpense, setEditingExpense] = useState(null);
 
-  // Allowance
-
-const [allowance, setAllowance] = useState(() => {
-  return (
-    localStorage.getItem(`allowance_${user?.id}`) || "0"
-  );
-});
+  // Allowance — now sourced from the user object (DB-backed), not its own localStorage key
+  const [allowance, setAllowance] = useState(user?.allowance ?? 0);
 
   const [tempAllowance, setTempAllowance] = useState("");
   const [editingAllowance, setEditingAllowance] = useState(false);
-  
+  const [savingAllowance, setSavingAllowance] = useState(false);
+
   // FETCH
- const fetchExpenses = async () => {
-  try {
-
-    const res = await axios.get(
-      `http://localhost:5000/expenses/${user.id}`
-    );
-
-    setExpenses(res.data);
-
-  } catch (err) {
-
-    console.log(err);
-
-  }
-};
+  const fetchExpenses = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/expenses/${user.id}`);
+      setExpenses(res.data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   useEffect(() => {
     fetchExpenses();
@@ -44,13 +32,13 @@ const [allowance, setAllowance] = useState(() => {
 
   // DELETE
   const handleDelete = async (id) => {
-  try {
-    await axios.delete(`http://localhost:5000/expenses/${id}`);
-    fetchExpenses();
-  } catch (err) {
-    console.log(err);
-  }
-};
+    try {
+      await axios.delete(`http://localhost:5000/expenses/${id}`);
+      fetchExpenses();
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   // FORMAT DATE
   const formatDate = (dateString) => {
@@ -62,38 +50,28 @@ const [allowance, setAllowance] = useState(() => {
 
   // TOTAL SPENT
   const currentMonth = new Date().getMonth();
-const currentYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
 
-const currentMonthExpenses = expenses.filter((e) => {
-  const date = new Date(e.date);
+  const currentMonthExpenses = expenses.filter((e) => {
+    const date = new Date(e.date);
+    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+  });
 
-  return (
-    date.getMonth() === currentMonth &&
-    date.getFullYear() === currentYear
+  const totalSpent = currentMonthExpenses.reduce(
+    (sum, item) => sum + Number(item.amount),
+    0
   );
-});
-
-const totalSpent = currentMonthExpenses.reduce(
-  (sum, item) => sum + Number(item.amount),
-  0
-);
 
   const monthlyRevenue = Number(allowance || 0);
   const remaining = monthlyRevenue - totalSpent;
 
   // PROGRESS %
   const spentPercent =
-    monthlyRevenue > 0
-      ? Math.min((totalSpent / monthlyRevenue) * 100, 100)
-      : 0;
+    monthlyRevenue > 0 ? Math.min((totalSpent / monthlyRevenue) * 100, 100) : 0;
 
   // COLOR
   const progressColor =
-    spentPercent < 60
-      ? "#22c55e"
-      : spentPercent < 80
-      ? "#f59e0b"
-      : "#ef4444";
+    spentPercent < 60 ? "#22c55e" : spentPercent < 80 ? "#f59e0b" : "#ef4444";
 
   // WARNING
   const isWarning = spentPercent >= 80 && spentPercent < 100;
@@ -105,30 +83,48 @@ const totalSpent = currentMonthExpenses.reduce(
       month: "long",
       year: "numeric",
     });
-
     acc[month] = acc[month] || [];
     acc[month].push(e);
     return acc;
   }, {});
 
-  // SAVE ALLOWANCE
-  const saveAllowance = () => {
-  localStorage.setItem(
-    `allowance_${user.id}`,
-    tempAllowance
-  );
+  // SAVE ALLOWANCE — now persists to DB instead of localStorage
+  const saveAllowance = async () => {
+    const value = Number(tempAllowance);
 
-  setAllowance(tempAllowance);
-  setEditingAllowance(false);
-};
+    if (isNaN(value) || value < 0) {
+      alert("Enter a valid allowance amount");
+      return;
+    }
+
+    setSavingAllowance(true);
+    try {
+      const res = await axios.put(
+        `http://localhost:5000/update-allowance/${user.id}`,
+        { allowance: value }
+      );
+
+      setAllowance(res.data.allowance);
+
+      // Keep the cached user object in sync so a refresh doesn't show stale data
+      const updatedUser = { ...user, allowance: res.data.allowance };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+
+      setEditingAllowance(false);
+    } catch (err) {
+      console.log(err);
+      alert(err.response?.data?.message || "Failed to update allowance");
+    } finally {
+      setSavingAllowance(false);
+    }
+  };
 
   return (
     <div className="dashboard-layout">
-
       <Sidebar />
 
       <div className="main-content">
-
         {/* HEADER */}
         <div className="topbar">
           <h2>Dashboard</h2>
@@ -142,10 +138,12 @@ const totalSpent = currentMonthExpenses.reduce(
           {!editingAllowance ? (
             <div className="allowance-view">
               <h3>₹{allowance || 0}</h3>
-              <button onClick={() => {
-                setTempAllowance(allowance);
-                setEditingAllowance(true);
-              }}>
+              <button
+                onClick={() => {
+                  setTempAllowance(allowance);
+                  setEditingAllowance(true);
+                }}
+              >
                 Edit
               </button>
             </div>
@@ -156,8 +154,12 @@ const totalSpent = currentMonthExpenses.reduce(
                 value={tempAllowance}
                 onChange={(e) => setTempAllowance(e.target.value)}
               />
-              <button onClick={saveAllowance}>Save</button>
-              <button onClick={() => setEditingAllowance(false)}>Cancel</button>
+              <button onClick={saveAllowance} disabled={savingAllowance}>
+                {savingAllowance ? "Saving..." : "Save"}
+              </button>
+              <button onClick={() => setEditingAllowance(false)} disabled={savingAllowance}>
+                Cancel
+              </button>
             </div>
           )}
         </div>
@@ -196,30 +198,28 @@ const totalSpent = currentMonthExpenses.reduce(
         )}
 
         {/* CARDS */}
-     <div className="row g-4 mt-3">
+        <div className="row g-4 mt-3">
+          <div className="col-md-4">
+            <div className="stats-card revenue">
+              <h6>Monthly Allowance</h6>
+              <h2>₹{monthlyRevenue}</h2>
+            </div>
+          </div>
 
-  <div className="col-md-4">
-    <div className="stats-card revenue">
-      <h6>Monthly Allowance</h6>
-      <h2>₹{monthlyRevenue}</h2>
-    </div>
-  </div>
+          <div className="col-md-4">
+            <div className="stats-card spent">
+              <h6>Total Spent</h6>
+              <h2>₹{totalSpent}</h2>
+            </div>
+          </div>
 
-  <div className="col-md-4">
-    <div className="stats-card spent">
-      <h6>Total Spent</h6>
-      <h2>₹{totalSpent}</h2>
-    </div>
-  </div>
-
-  <div className="col-md-4">
-    <div className="stats-card remain">
-      <h6>Remaining</h6>
-      <h2>₹{remaining}</h2>
-    </div>
-  </div>
-
-</div>
+          <div className="col-md-4">
+            <div className="stats-card remain">
+              <h6>Remaining</h6>
+              <h2>₹{remaining}</h2>
+            </div>
+          </div>
+        </div>
 
         {/* ADD EXPENSE */}
         <div className="card shadow mt-4 p-4">
@@ -279,13 +279,10 @@ const totalSpent = currentMonthExpenses.reduce(
                     </tr>
                   ))}
                 </tbody>
-
               </table>
             </div>
           ))}
-
         </div>
-
       </div>
     </div>
   );

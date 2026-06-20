@@ -80,16 +80,17 @@ const loginUser = async (req, res) => {
       }
     );
 
-   res.status(200).json({
-  message: "Login Successful",
-  token,
-  user: {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    createdAt: user.createdAt,
-  },
-});
+    res.status(200).json({
+      message: "Login Successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+        allowance: user.allowance,   
+      },
+    });
 
   } catch (error) {
     console.log(error);
@@ -131,6 +132,44 @@ const forgotPassword = async (req, res) => {
   } catch (error) {
     console.log(error);
 
+    res.status(500).json({
+      message: "Server Error",
+    });
+  }
+};
+
+// =======================
+// Update Allowance
+// =======================
+const updateAllowance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { allowance } = req.body;
+
+    if (allowance === undefined || allowance === null || allowance < 0) {
+      return res.status(400).json({
+        message: "Invalid allowance value",
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { allowance },
+      { new: true, runValidators: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Allowance updated successfully",
+      allowance: user.allowance,
+    });
+  } catch (error) {
+    console.log(error);
     res.status(500).json({
       message: "Server Error",
     });
@@ -179,4 +218,5 @@ module.exports = {
   loginUser,
   forgotPassword,
   updateProfile,
+  updateAllowance,   // <-- added
 };

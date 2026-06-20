@@ -32,8 +32,7 @@ function Reports() {
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  const allowance =
-    Number(localStorage.getItem(`allowance_${user?.id}`)) || 0;
+    const allowance = Number(user?.allowance) || 0;
 
   const months = [
     "January", "February", "March", "April", "May", "June",
