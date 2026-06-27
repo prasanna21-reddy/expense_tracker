@@ -8,7 +8,7 @@ function Home() {
 
       {/* Navbar */}
       <nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-        <div className="container">
+        <div className="container-fluid px-4">
           <Link className="navbar-brand fw-bold fs-3" to="/">
             💰 Expense Tracker
           </Link>
@@ -51,7 +51,7 @@ function Home() {
           <div className="row m-0 flex-grow-1 w-100">
 
             {/* Left Side */}
-            <div className="col-lg-6 text-center text-lg-start d-flex flex-column justify-content-center p-5">
+            <div className="col-lg-5 text-center text-lg-start d-flex flex-column justify-content-center p-5">
               <h1 className="hero-title fw-bold mb-4 display-4 text-dark">
                 Manage Your Expenses Smartly 💸
               </h1>
@@ -80,11 +80,11 @@ function Home() {
             </div>
 
             {/* Right Side */}
-            <div className="col-lg-6 p-0 d-flex">
+            <div className="col-lg-7 p-0 d-flex">
               <img
                 src={homePhoto}
                 alt="Personal Expense Tracker App"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: '400px' }}
+                style={{ width: '100%', height: '100%', objectFit: 'fill' }}
               />
             </div>
 

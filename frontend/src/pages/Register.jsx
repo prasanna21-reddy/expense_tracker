@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import "./Login.css"; // Use the same CSS as Login
 
 const MAIN_API_URL = "http://localhost:5000";
-const OTP_API_URL = "http://localhost:8083";
+const OTP_API_URL = "https://dispersed-unwritten-foster.ngrok-free.dev";
 const RESEND_COOLDOWN = 30; // seconds, matches backend's "wait 30 secs" rule
 
 function Register() {
